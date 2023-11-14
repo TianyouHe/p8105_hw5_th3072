@@ -1,0 +1,66 @@
+---
+title: "p8105_hw5_th3072"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(modelr)
+library(rvest)
+set.seed(1)
+```
+
+# Problem 1
+```{r}
+homicides <- read_csv("./hw5_data/homicide-data.csv")
+```
+
+```{r}
+homicides_city_state <- homicides |>
+  mutate(city_state = paste(city, state, sep=", ")) |>
+  group_by(city_state) |>
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+
+
+baltimore_data <- filter(homicides_city_state, city_state == "Baltimore, MD")
+
+unsolved <- pull(baltimore_data, unsolved_homicides)
+total <- pull(baltimore_data, total_homicides)
+
+prop_test_baltimore <- prop.test(unsolved, total)|> broom::tidy()
+prop_test_baltimore
+
+```
+
+
+```{r}
+homicides_summary <- homicides |>
+  mutate(city_state = paste(city, state, sep=", ")) |>
+  group_by(city_state) |>
+  summarise(
+    total = n(),
+    unsolved = sum(disposition %in% c("Closed without arrest", "Open/No arrest")),
+  ) |>
+  mutate(
+    prop_test = map2(unsolved, total, ~prop.test(.x, .y)),
+    tidy_data = map(prop_test, ~tidy(.x))
+  ) |>
+  unnest(tidy_data)
+```
+
+```{r}
+ggplot(homicides_summary, aes(x = reorder(city_state, estimate), y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  coord_flip() +
+  labs(title = "Proportion of Unsolved Homicides by City",
+       x = "City",
+       y = "Proportion Unsolved") +
+  theme_minimal()
+```
+
+# Problem 2
