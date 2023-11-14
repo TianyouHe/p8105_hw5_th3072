@@ -6,8 +6,10 @@ output: github_document
 ```{r}
 library(tidyverse)
 library(ggplot2)
-library(modelr)
+
 library(rvest)
+library(purrr)
+library(broom)
 set.seed(1)
 ```
 
@@ -31,7 +33,9 @@ baltimore_data <- filter(homicides_city_state, city_state == "Baltimore, MD")
 unsolved <- pull(baltimore_data, unsolved_homicides)
 total <- pull(baltimore_data, total_homicides)
 
-prop_test_baltimore <- prop.test(unsolved, total)|> broom::tidy()
+prop_test_baltimore <- prop.test(unsolved, total)|>
+  broom::tidy()|>
+  knitr::kable(digits = 3)
 prop_test_baltimore
 
 ```
@@ -64,3 +68,83 @@ ggplot(homicides_summary, aes(x = reorder(city_state, estimate), y = estimate)) 
 ```
 
 # Problem 2
+
+```{r}
+prob2_data <- list.files(path = "./hw5_data/prob2_data", full.names = TRUE)
+
+data_list <- map(prob2_data, read.csv)
+data_combine <- bind_rows(data_list, .id = "id")
+
+data_combine <- data_combine |>
+  mutate(
+    arm = ifelse(str_detect(prob2_data, "con"), "con", "exp"),
+    subject_id = str_extract(basename(prob2_data), "\\d+"),
+    subject_id = str_c(arm, "_", subject_id)
+  ) |>
+  select(-id)
+```
+
+```{r}
+tidy_data <- data_combine |>
+  pivot_longer(cols = starts_with("week"), 
+               names_to = "week", 
+               values_to = "observation")
+
+ggplot(tidy_data, aes(x = week, y = observation, group = subject_id, color = arm)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Observations Over Time by Arm", x = "Week", y = "Observation")
+
+```
+
+# Problem 3
+
+```{r}
+n <- 30
+sigma <- 5
+mu_values <- 0:6
+```
+
+```{r}
+results <- data.frame()
+for (mu in mu_values) {
+  for (i in 1:5000) {
+    sample_data <- rnorm(n, mean = mu, sd = sigma)
+    test_result <- broom::tidy(t.test(sample_data, mu = 0))
+    results <- rbind(results, c(mu, mean(sample_data), test_result$p.value, test_result$p.value < 0.05))
+  }
+}
+colnames(results) <- c("mu", "mu_hat", "p_value", "reject_null")
+```
+
+```{r}
+proportions <- aggregate(reject_null ~ mu, data = results, mean)
+
+ggplot(proportions, aes(x = mu, y = reject_null)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Proportion of Null Rejection vs. True Value of mu",
+       x = "True value of mu",
+       y = "Proportion of Null Rejected") +
+  theme_minimal()
+```
+
+
+```{r}
+average_estimates <- aggregate(mu_hat ~ mu, data = results, mean)
+average_estimates_rejected <- aggregate(mu_hat ~ mu, data = results[results$reject_null == TRUE, ], mean)
+
+average_estimates$group <- "average_estimates"
+average_estimates_rejected$group <- "average_estimates_rejected"
+combined_data <- rbind(average_estimates, average_estimates_rejected)
+
+
+ggplot(combined_data, aes(x = mu, y = mu_hat, color = group)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Average Estimate of mu_hat vs. True value of mu",
+       x = "True value of mu",
+       y = "Average Estimate of mu_hat") +
+  theme_minimal() 
+```
+
