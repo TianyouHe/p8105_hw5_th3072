@@ -96,6 +96,7 @@ ggplot(tidy_data, aes(x = week, y = observation, group = subject_id, color = arm
   labs(title = "Observations Over Time by Arm", x = "Week", y = "Observation")
 
 ```
+
 *Answer: * In control arm, we can clearly see little change over time at week1 and week8, althought there are some fluctuations. However, for the experimental arm, it is about the same as the control arm at week1, but gradually increases over time. Finally, the experimental arm has higher values than control arm.
 
 # Problem 3
@@ -129,6 +130,7 @@ ggplot(proportions, aes(x = mu, y = reject_null)) +
        y = "Proportion of Null Rejected") +
   theme_minimal()
 ```
+
 *Answer: * From this plot, we can see with mu increase, the proportion of null rejected rejected increase. So, the larger the effect size, the greater the power of the test to detect it. Also, there is a diminishing return (if effect size greater enough, the proportion of null rejected should be 1).
 
 
@@ -149,6 +151,7 @@ ggplot(combined_data, aes(x = mu, y = mu_hat, color = group)) +
        y = "Average Estimate of mu_hat") +
   theme_minimal() 
 ```
+
 *Answer: *
 
 The sample average of mu_hat across tests for which the null is rejected is not approximately equal to the true value of mu. It is typically higher, especially at lower values of mu, which may not accurately reflect the true effect size. When the effect size is large enough, the sample estimates are naturally closer to the true values.
